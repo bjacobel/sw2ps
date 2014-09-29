@@ -20,6 +20,10 @@ class PSRequest:
         self.dataMode = dataMode
         self.timestamp = int(datetime.now().strftime("%s"))*1000
 
+    def toJSON(self):
+        return json.dumps(self.__dict__)
+
+
 class PSCollection:
     def __init__(self, name):
         self.name = name
@@ -29,6 +33,18 @@ class PSCollection:
 
     def append(self, psrequest):
         self.requests.append(psrequest)
+
+    def toJSON(self):
+        temp_dict = {}
+        for (key, value) in self.__dict__.iteritems():
+            if type(value) == type([]):
+                temp_dict[key] = []
+                for val in value:
+                    temp_dict[key].append(val.toJSON())
+            else:
+                temp_dict[key] = value
+
+        return json.dumps(temp_dict)
 
 def main():
     parser = argparse.ArgumentParser(description='Consume a Swagger-UI site and'+
@@ -43,8 +59,6 @@ def main():
 
         print("Located API. There are {} primary resources. Crawling each..."
             .format(len(api_root["apis"])))
-
-        collections = []
 
         for resource in api_root["apis"]:
             print("Adding endpoints for {} resource."
@@ -70,13 +84,13 @@ def main():
                         )
                         collection.append(request)
 
-                collections.append(collection)
+                with open("collections/{}.json".format(resource['path'][1:]), 'wb+') as f:
+                    f.write(collection.toJSON())
 
             else:
                 raise Exception("No resource at specified URL")
 
-        for collection in collections:
-            print(collection)
+        print("Done! Import the files in the 'collections' folder to Postman or Runscope.")
 
     else:
         raise Exception("No resource at specified URL")
